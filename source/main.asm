@@ -1,22 +1,19 @@
-	;$f4 = Cursor color counter
-	;$f5 = Color memory pointer low byte 
-	;$f6 = Color memory pointer high byte 
-	;$f7 = Text color memory pointer
-	;$f8 = Text color memory pointer
-	;$f9 = Character counter
-	;$fa = Row counter
-	;$fb = Screen pause counter
-	;$fc = Screen memory pointer low byte
-	;$fd = Screen memory pointer high byte
-	;$fe = Text data memory pointer low byte
-	;$ff = Text data memory pointer high byte
+	;$64 = character index
+	;$65 = row index
+	;$66 = cursor phase index
+	;$67 = delay index
+
+	;$80 = color memory pointer 
+	;$82 = screen memory pointer
+	;$84 = text color pointer
+	;$86 = text pointer
 
 	*= $0801
 
 	jsr $e544
 
-	lda #$ff
-	sta $fb
+	lda #$7f
+	sta $67
 
 	lda #$00
 	sta $d020
@@ -29,10 +26,10 @@
 logo:
 	ldx #$00
 -
-	lda $6000,x
+	lda $3000,x
 	sta $d800,x
 
-	lda $63eb,x
+	lda $33eb,x
 	sta $0400,x
 
 	inx
@@ -41,22 +38,22 @@ logo:
 
 	ldx #$00
 -
-	lda $6100,x
+	lda $3100,x
 	sta $d900,x
 
-	lda $64eb,x
+	lda $34eb,x
 	sta $0500,x
 
 	inx
 	cpx #$3e
 	bne -
 
-horizonallines:
+horizontallines:
 	ldx #$00
 -
 	lda #$63
 	sta $0568,x
-	sta $0568+40*15,x
+	sta $0568 + 40 * 15,x
 
 	inx
 	cpx #40
@@ -136,13 +133,13 @@ txtirq:
 
 colorcycle:
 	lda $8281
-	sta $8281+40
+	sta $8281 + 40
 
 	ldx #$00
--	lda $8281+1,x
+-	lda $8281 + 1,x
 	sta $8281,x
 	sta $d968,x
-	sta $d968+40*15,x
+	sta $d968 + 40 * 15,x
 
 	inx
 	cpx #40
@@ -150,13 +147,13 @@ colorcycle:
 	rts
 
 textwriter:
-	lda $f4
+	lda $66
 	cmp #19
 	beq resetcursorcolor
 
-	inc $f4
+	inc $66
 
-	lda $fb
+	lda $67
 	cmp #$00
 	beq dotext
 	bcs pause
@@ -165,9 +162,9 @@ textwriter:
 pause:
 	jsr writecursor
 
-	dec $fb
+	dec $67
 	
-	lda $fb
+	lda $67
 	cmp #$00
 	beq clearscreen
 	rts
@@ -179,90 +176,90 @@ dotext:
 
 resetcursorcolor:
 	lda #$00
-	sta $f4
+	sta $66
 	rts
 
 writecursor:
-	ldx $f4
-	ldy $f9
+	ldx $66
+	ldy $64
 	lda $82aa,x
-	sta ($f5),y
+	sta ($80),y
 
 	lda #$e0
-	sta ($fc),y
+	sta ($82),y
 	rts
 
 writecharacter:
-	ldy $f9
-	lda ($f7),y
-	sta ($f5),y
+	ldy $64
+	lda ($84),y
+	sta ($80),y
 
-	lda ($fe),y
+	lda ($86),y
 	cmp #$ff
 	beq restart
 
-	sta ($fc),y
+	sta ($82),y
 
 	cpy #39
 	beq nextrow
 
-	inc $f9
+	inc $64
 	rts
 
 pushoffsets:
 	clc
 
-	lda $f5
+	lda $80
 	adc #40
-	sta $f5
-	lda $f6
+	sta $80
+	lda $81
 	adc #$00
-	sta $f6
+	sta $81
 
-	lda $f7
+	lda $84
 	adc #40
-	sta $f7
-	lda $f8
+	sta $84
+	lda $85
 	adc #$00
-	sta $f8
+	sta $85
 
-	lda $fc
+	lda $82
 	adc #40
-	sta $fc
-	lda $fd
+	sta $82
+	lda $83
 	adc #$00
-	sta $fd
+	sta $83
 	rts
 
 pushoffsets2:
 	clc
 
-	lda $fe
+	lda $86
 	adc #40
-	sta $fe
-	lda $ff
+	sta $86
+	lda $87
 	adc #$00
-	sta $ff
+	sta $87
 	rts
 
 nextrow:
 	jsr pushoffsets2
 
-	lda $fa
+	lda $65
 	cmp #12
 	beq nextscreen
 
 	jsr pushoffsets
 
 	lda #$00
-	sta $f9
+	sta $64
 
-	inc $fa
+	inc $65
 	rts
 
 nextscreen:
 	lda #$ff
-	sta $fb
+	sta $67
 	rts
 
 clearscreen:
@@ -270,7 +267,7 @@ clearscreen:
 	ldx #$00
 -
 	sta $0590,x
-	sta $0590+255,x
+	sta $0590 + 255,x
 
 	inx
 	cpx #$ff
@@ -278,10 +275,10 @@ clearscreen:
 
 	ldx #$00
 -
-	sta $0590+255*2,x
+	sta $0590 + 255 * 2,x
 
 	inx
-	cpx #130-40*2
+	cpx #50
 	bne -
 
 	jsr clearindices
@@ -303,38 +300,38 @@ setpointers:
 	rts
 
 settextpointer:
-	lda #$90
-	sta $ff
 	lda #$00
-	sta $fe
+	sta $86
+	lda #$83
+	sta $87
 	rts
 
 setscreenpointer:
-	lda #$05
-	sta $fd
 	lda #$90
-	sta $fc
+	sta $82
+	lda #$05
+	sta $83
 	rts
 
 setcolorpointer:
-	lda #$d9
-	sta $f6
 	lda #$90
-	sta $f5
+	sta $80
+	lda #$d9
+	sta $81
 	rts
 
 settextcolorpointer:
-	lda #$80
-	sta $f8
 	lda #$00
-	sta $f7
+	sta $84
+	lda #$80
+	sta $85
 	rts
 
 clearindices:
 	lda #$00
-	sta $f4
-	sta $f9
-	sta $fa
+	sta $66
+	sta $64
+	sta $65
 	rts
 
 	*= $1000
@@ -343,15 +340,15 @@ clearindices:
 	*= $2000
 	!binary "data/unifaun.map",2540
 
+	*= $3000
+	!binary "data/unifaun.col",297
+
+	*= $33eb
+	!binary "data/unifaun.scr",318
+
 	*= $3800
 	!source "data/charset.dat"
 	
-	*= $6000
-	!binary "data/unifaun.col",297
-
-	*= $63eb
-	!binary "data/unifaun.scr",318
-
 	*= $8000
 	!byte $0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b
 	!byte $0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c
@@ -373,7 +370,7 @@ clearindices:
 	*= $82aa
 	!byte $00,$00,$0b,$0b,$0c,$0c,$0f,$0f,$03,$01,$01,$03,$0f,$0f,$0c,$0c,$0b,$0b,$00,$00
 
-	*= $9000
+	*= $8300
 	!scr "  SunifaunS is a market leader within   "
 	!scr " transport management(tm) on the nordic "
 	!scr "   market. with more than 20 years of   "
