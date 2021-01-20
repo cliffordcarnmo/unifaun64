@@ -1,36 +1,65 @@
 	;$64 = character index
 	;$65 = row index
-	;$66 = cursor phase index
+	;$66 = cursor color index
 	;$67 = delay index
-
 	;$80 = color memory pointer 
 	;$82 = screen memory pointer
 	;$84 = text color pointer
 	;$86 = text pointer
 
+	screenmem = $0400
+	textscreenmem = screenmem + 10 * 40
+	line1 = screenmem + 9 * 40
+	line2 = screenmem + 24 * 40
+	sid = $1000
+	sidplay = $1000 + 3
+	logobitmap = $2000
+	logocolors = $3000
+	logoscreen = $33eb
+	charset = $3800
+	sprites = $3e00
+	textcolors = $8000
+	linecolors = $8281
+	cursorcolors = $82aa
+	spritecolors = $82be
+	text = $8300
+	random = $d41b
+	colormem = $d800
+	line1colormem = $d968
+	line2colormem = line1colormem + 15 * 40
+	textcolormem = $d990
+
 	*= $0801
 
 	jsr $e544
-
-	lda #$7f
-	sta $67
 
 	lda #$00
 	sta $d020
 	sta $d021
 
-	jsr $1000
-	
+	;initial timer
+	lda #$7f
+	sta $67
+
+	;initial sprite flip
+	lda #$01
+	sta $68
+
+	;jsr initsprites
+
+pointers:
+	jsr sid
+	jsr setspritepointers
 	jsr setpointers
 
 logo:
 	ldx #$00
 -
-	lda $3000,x
-	sta $d800,x
+	lda logocolors,x
+	sta colormem,x
 
-	lda $33eb,x
-	sta $0400,x
+	lda logoscreen,x
+	sta screenmem,x
 
 	inx
 	cpx #$ff
@@ -38,11 +67,11 @@ logo:
 
 	ldx #$00
 -
-	lda $3100,x
-	sta $d900,x
+	lda logocolors + 256,x
+	sta colormem + 256,x
 
-	lda $34eb,x
-	sta $0500,x
+	lda logoscreen + 256,x
+	sta screenmem + 256,x
 
 	inx
 	cpx #$3e
@@ -52,8 +81,8 @@ horizontallines:
 	ldx #$00
 -
 	lda #$63
-	sta $0568,x
-	sta $0568 + 40 * 15,x
+	sta line1,x
+	sta line2,x
 
 	inx
 	cpx #40
@@ -84,10 +113,39 @@ main:
 
 	jmp *
 
+initsprites:
+	lda	#%11111111
+	sta $d015
+	
+	lda #%00000000
+	sta $d017
+	sta $d01b
+	sta $d01c
+	sta $d01d
+
+	lda #$01
+	sta $d028
+	sta $d029
+	sta $d02a
+	sta $d02b
+	sta $d02c
+	sta $d02d
+	sta $d02e
+
+	lda #%00000001
+	sta $d010
+
+	lda #88
+	sta $d000
+
+	lda #125
+	sta $d001
+
 gfxirq:
 	asl $d019
 
-	jsr $1003
+	jsr sidplay
+	;jsr movesprites
 
 	lda #$3b
 	sta $d011
@@ -131,15 +189,58 @@ txtirq:
 	sta $ffff
 	rti
 
+movesprites:
+	dec $d000
+
+	lda $68
+	cmp #$00
+	beq lower
+	bcs higher
+	rts
+
+lower:
+	lda $d000
+	cmp #$00
+	beq resetspritehigh
+	rts
+
+higher:
+	lda $d000
+	cmp #$00
+	beq resetspritelow
+	rts
+
+resetspritehigh:
+	lda #$01
+	sta $68
+
+	lda #%00000001
+	sta $d010
+
+	lda #88
+	sta $d000
+	rts
+
+resetspritelow:
+	lda #$00
+	sta $68
+
+	lda #%00000000
+	sta $d010
+
+	lda #$ff
+	sta $d000
+	rts
+
 colorcycle:
-	lda $8281
-	sta $8281 + 40
+	lda linecolors
+	sta linecolors + 40
 
 	ldx #$00
--	lda $8281 + 1,x
-	sta $8281,x
-	sta $d968,x
-	sta $d968 + 40 * 15,x
+-	lda linecolors + 1,x
+	sta linecolors,x
+	sta line1colormem,x
+	sta line2colormem,x
 
 	inx
 	cpx #40
@@ -182,10 +283,10 @@ resetcursorcolor:
 writecursor:
 	ldx $66
 	ldy $64
-	lda $82aa,x
+	lda cursorcolors,x
 	sta ($80),y
 
-	lda #$e0
+	lda #$7f
 	sta ($82),y
 	rts
 
@@ -196,7 +297,7 @@ writecharacter:
 
 	lda ($86),y
 	cmp #$ff
-	beq restart
+	beq setpointers
 
 	sta ($82),y
 
@@ -266,8 +367,8 @@ clearscreen:
 	lda #$20
 	ldx #$00
 -
-	sta $0590,x
-	sta $0590 + 255,x
+	sta textscreenmem,x
+	sta textscreenmem + 255,x
 
 	inx
 	cpx #$ff
@@ -275,7 +376,7 @@ clearscreen:
 
 	ldx #$00
 -
-	sta $0590 + 255 * 2,x
+	sta textscreenmem + 255 * 2,x
 
 	inx
 	cpx #50
@@ -287,10 +388,6 @@ clearscreen:
 	jsr setscreenpointer
 	rts
 
-restart:
-	jsr setpointers
-	rts
-
 setpointers:
 	jsr clearindices
 	jsr setcolorpointer
@@ -299,57 +396,216 @@ setpointers:
 	jsr settextpointer
 	rts
 
-settextpointer:
-	lda #$00
-	sta $86
-	lda #$83
-	sta $87
-	rts
-
-setscreenpointer:
-	lda #$90
-	sta $82
-	lda #$05
-	sta $83
-	rts
-
 setcolorpointer:
-	lda #$90
+	lda #<textcolormem
 	sta $80
-	lda #$d9
+	lda #>textcolormem
 	sta $81
 	rts
 
+setscreenpointer:
+	lda #<textscreenmem
+	sta $82
+	lda #>textscreenmem
+	sta $83
+	rts
+
 settextcolorpointer:
-	lda #$00
+	lda #<textcolors
 	sta $84
-	lda #$80
+	lda #>textcolors
 	sta $85
+	rts
+
+settextpointer:
+	lda #<text
+	sta $86
+	lda #>text
+	sta $87
+	rts
+
+setspritepointers:
+	lda #$f8
+	sta $07f8
+	lda #$f9
+	sta $07f9
+	lda #$fa
+	sta $07fa
+	lda #$fb
+	sta $07fb
+	lda #$fc
+	sta $07fc
+	lda #$fd
+	sta $07fd
+	lda #$fe
+	sta $07fe
+	lda #$ff
+	sta $07ff
 	rts
 
 clearindices:
 	lda #$00
-	sta $66
 	sta $64
 	sta $65
+	sta $66
 	rts
 
-	*= $1000
-	!binary "data/Goldie.sid",,$7e
+	*= sid
+	!binary "data/goldie.sid",,$7e
 
-	*= $2000
-	!binary "data/unifaun.map",2540
+	*= logobitmap
+	;!binary "data/unifaun.map",2540
+	!binary "data/unifaun.kla",2540,2
 
-	*= $3000
-	!binary "data/unifaun.col",297
+	*= logoscreen
+	;!binary "data/unifaun.scr",318
+	!binary "data/unifaun.kla",318,8002
 
-	*= $33eb
-	!binary "data/unifaun.scr",318
+	*= logocolors
+	;!binary "data/unifaun.col",297
+	!binary "data/unifaun.kla",297,9002
 
-	*= $3800
-	!source "data/charset.dat"
-	
-	*= $8000
+	*= charset
+	!byte $3c, $66, $6e, $6e, $60, $62, $3c, $00
+	!byte $3c, $66, $66, $66, $7e, $66, $66, $00
+	!byte $7c, $66, $66, $7c, $66, $66, $7c, $00
+	!byte $3e, $60, $60, $60, $60, $60, $3e, $00
+	!byte $7c, $66, $66, $66, $66, $66, $7c, $00
+	!byte $3e, $60, $60, $78, $60, $60, $3e, $00
+	!byte $3e, $60, $60, $78, $60, $60, $60, $00
+	!byte $3c, $66, $60, $6e, $66, $66, $3c, $00
+	!byte $66, $66, $66, $7e, $66, $66, $66, $00
+	!byte $18, $18, $18, $18, $18, $18, $18, $00
+	!byte $0c, $0c, $0c, $0c, $0c, $0c, $78, $00
+	!byte $66, $6c, $78, $70, $78, $6c, $66, $00
+	!byte $60, $60, $60, $60, $60, $60, $3e, $00
+	!byte $63, $77, $7f, $6b, $63, $63, $63, $00
+	!byte $66, $76, $7e, $7e, $6e, $66, $66, $00
+	!byte $3c, $66, $66, $66, $66, $66, $3c, $00
+	!byte $7c, $66, $66, $66, $66, $7c, $60, $00
+	!byte $3c, $66, $66, $66, $66, $3c, $0e, $00
+	!byte $7c, $66, $66, $7c, $78, $6c, $66, $00
+	!byte $3c, $66, $60, $3c, $06, $66, $3c, $00
+	!byte $7e, $18, $18, $18, $18, $18, $18, $00
+	!byte $66, $66, $66, $66, $66, $66, $3c, $00
+	!byte $66, $66, $66, $66, $66, $3c, $18, $00
+	!byte $63, $63, $63, $6b, $7f, $77, $63, $00
+	!byte $66, $66, $3c, $18, $3c, $66, $66, $00
+	!byte $66, $66, $66, $3c, $18, $18, $18, $00
+	!byte $7e, $06, $0c, $18, $30, $60, $7e, $00
+	!byte $3c, $30, $30, $30, $30, $30, $3c, $00
+	!byte $0c, $12, $30, $7c, $30, $62, $fc, $00
+	!byte $3c, $0c, $0c, $0c, $0c, $0c, $3c, $00
+	!byte $00, $18, $3c, $7e, $18, $18, $18, $18
+	!byte $00, $10, $30, $7f, $7f, $30, $10, $00
+	!byte $00, $00, $00, $00, $00, $00, $00, $00
+	!byte $18, $18, $18, $18, $00, $00, $18, $00
+	!byte $66, $66, $66, $00, $00, $00, $00, $00
+	!byte $66, $66, $ff, $66, $ff, $66, $66, $00
+	!byte $18, $3e, $60, $3c, $06, $7c, $18, $00
+	!byte $62, $66, $0c, $18, $30, $66, $46, $00
+	!byte $3c, $66, $3c, $38, $67, $66, $3f, $00
+	!byte $06, $0c, $18, $00, $00, $00, $00, $00
+	!byte $0c, $18, $30, $30, $30, $18, $0c, $00
+	!byte $30, $18, $0c, $0c, $0c, $18, $30, $00
+	!byte $00, $66, $3c, $ff, $3c, $66, $00, $00
+	!byte $00, $18, $18, $7e, $18, $18, $00, $00
+	!byte $00, $00, $00, $00, $00, $18, $18, $30
+	!byte $00, $00, $00, $7e, $00, $00, $00, $00
+	!byte $00, $00, $00, $00, $00, $18, $18, $00
+	!byte $00, $03, $06, $0c, $18, $30, $60, $00
+	!byte $3c, $66, $6e, $76, $66, $66, $3c, $00
+	!byte $18, $18, $38, $18, $18, $18, $7e, $00
+	!byte $3c, $66, $06, $0c, $30, $60, $7e, $00
+	!byte $3c, $66, $06, $1c, $06, $66, $3c, $00
+	!byte $06, $0e, $1e, $66, $7f, $06, $06, $00
+	!byte $7e, $60, $7c, $06, $06, $66, $3c, $00
+	!byte $3c, $66, $60, $7c, $66, $66, $3c, $00
+	!byte $7e, $66, $0c, $18, $18, $18, $18, $00
+	!byte $3c, $66, $66, $3c, $66, $66, $3c, $00
+	!byte $3c, $66, $66, $3e, $06, $66, $3c, $00
+	!byte $00, $00, $18, $00, $00, $18, $00, $00
+	!byte $00, $00, $18, $00, $00, $18, $18, $30
+	!byte $0e, $18, $30, $60, $30, $18, $0e, $00
+	!byte $00, $00, $7e, $00, $7e, $00, $00, $00
+	!byte $70, $18, $0c, $06, $0c, $18, $70, $00
+	!byte $3c, $66, $06, $0c, $18, $00, $18, $00
+	!byte $00, $00, $00, $ff, $ff, $00, $00, $00
+	!byte $08, $1c, $3e, $7f, $7f, $1c, $3e, $00
+	!byte $18, $18, $18, $18, $18, $18, $18, $18
+	!byte $00, $00, $00, $ff, $ff, $00, $00, $00
+	!byte $00, $00, $ff, $ff, $00, $00, $00, $00
+	!byte $00, $ff, $ff, $00, $00, $00, $00, $00
+	!byte $00, $00, $00, $00, $ff, $ff, $00, $00
+	!byte $30, $30, $30, $30, $30, $30, $30, $30
+	!byte $0c, $0c, $0c, $0c, $0c, $0c, $0c, $0c
+	!byte $00, $00, $00, $e0, $f0, $38, $18, $18
+	!byte $18, $18, $1c, $0f, $07, $00, $00, $00
+	!byte $18, $18, $38, $f0, $e0, $00, $00, $00
+	!byte $c0, $c0, $c0, $c0, $c0, $c0, $ff, $ff
+	!byte $c0, $e0, $70, $38, $1c, $0e, $07, $03
+	!byte $03, $07, $0e, $1c, $38, $70, $e0, $c0
+	!byte $ff, $ff, $c0, $c0, $c0, $c0, $c0, $c0
+	!byte $ff, $ff, $03, $03, $03, $03, $03, $03
+	!byte $00, $3c, $7e, $7e, $7e, $7e, $3c, $00
+	!byte $00, $00, $00, $00, $00, $ff, $ff, $00
+	!byte $36, $7f, $7f, $7f, $3e, $1c, $08, $00
+	!byte $60, $60, $60, $60, $60, $60, $60, $60
+	!byte $00, $00, $00, $07, $0f, $1c, $18, $18
+	!byte $c3, $e7, $7e, $3c, $3c, $7e, $e7, $c3
+	!byte $00, $3c, $7e, $66, $66, $7e, $3c, $00
+	!byte $18, $18, $66, $66, $18, $18, $3c, $00
+	!byte $06, $06, $06, $06, $06, $06, $06, $06
+	!byte $08, $1c, $3e, $7f, $3e, $1c, $08, $00
+	!byte $18, $18, $18, $ff, $ff, $18, $18, $18
+	!byte $c0, $c0, $30, $30, $c0, $c0, $30, $30
+	!byte $18, $18, $18, $18, $18, $18, $18, $18
+	!byte $00, $00, $03, $3e, $76, $36, $36, $00
+	!byte $ff, $7f, $3f, $1f, $0f, $07, $03, $01
+	!byte $00, $00, $00, $00, $00, $00, $00, $00
+	!byte $f0, $f0, $f0, $f0, $f0, $f0, $f0, $f0
+	!byte $00, $00, $00, $00, $ff, $ff, $ff, $ff
+	!byte $ff, $00, $00, $00, $00, $00, $00, $00
+	!byte $00, $00, $00, $00, $00, $00, $00, $ff
+	!byte $c0, $c0, $c0, $c0, $c0, $c0, $c0, $c0
+	!byte $cc, $cc, $33, $33, $cc, $cc, $33, $33
+	!byte $03, $03, $03, $03, $03, $03, $03, $03
+	!byte $00, $00, $00, $00, $cc, $cc, $33, $33
+	!byte $ff, $fe, $fc, $f8, $f0, $e0, $c0, $80
+	!byte $03, $03, $03, $03, $03, $03, $03, $03
+	!byte $18, $18, $18, $1f, $1f, $18, $18, $18
+	!byte $00, $00, $00, $00, $0f, $0f, $0f, $0f
+	!byte $18, $18, $18, $1f, $1f, $00, $00, $00
+	!byte $00, $00, $00, $f8, $f8, $18, $18, $18
+	!byte $00, $00, $00, $00, $00, $00, $ff, $ff
+	!byte $00, $00, $00, $1f, $1f, $18, $18, $18
+	!byte $18, $18, $18, $ff, $ff, $00, $00, $00
+	!byte $00, $00, $00, $ff, $ff, $18, $18, $18
+	!byte $18, $18, $18, $f8, $f8, $18, $18, $18
+	!byte $c0, $c0, $c0, $c0, $c0, $c0, $c0, $c0
+	!byte $e0, $e0, $e0, $e0, $e0, $e0, $e0, $e0
+	!byte $07, $07, $07, $07, $07, $07, $07, $07
+	!byte $ff, $ff, $00, $00, $00, $00, $00, $00
+	!byte $ff, $ff, $ff, $00, $00, $00, $00, $00
+	!byte $00, $00, $00, $00, $00, $ff, $ff, $ff
+	!byte $03, $03, $03, $03, $03, $03, $ff, $ff
+	!byte $00, $00, $00, $00, $f0, $f0, $f0, $f0
+	!byte $0f, $0f, $0f, $0f, $00, $00, $00, $00
+	!byte $0f, $0f, $0f, $0f, $0f, $0f, $0f, $0f
+	!byte $3f, $3f, $3f, $3f, $3f, $3f, $3f, $3f
+	!byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
+
+	*= sprites
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+
+	*= textcolors
 	!byte $0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b
 	!byte $0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c
 	!byte $0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c
@@ -364,13 +620,16 @@ clearindices:
 	!byte $0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b
 	!byte $0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b
 
-	*= $8281
+	*= linecolors
 	!byte $0b,$0b,$0b,$0b,$0c,$0c,$0c,$0c,$0f,$0f,$05,$05,$07,$07,$03,$03,$01,$01,$01,$01,$01,$01,$01,$01,$03,$03,$07,$07,$05,$05,$0f,$0f,$0c,$0c,$0c,$0c,$0b,$0b,$0b,$0b
 
-	*= $82aa
+	*= cursorcolors
 	!byte $00,$00,$0b,$0b,$0c,$0c,$0f,$0f,$03,$01,$01,$03,$0f,$0f,$0c,$0c,$0b,$0b,$00,$00
 
-	*= $8300
+	*= spritecolors
+	!byte $0b,$0c,$0f,$07,$01
+
+	*= text
 	!scr "  SunifaunS is a market leader within   "
 	!scr " transport management(tm) on the nordic "
 	!scr "   market. with more than 20 years of   "
