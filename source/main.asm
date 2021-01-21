@@ -1,33 +1,35 @@
-	;$64 = character index
-	;$65 = row index
-	;$66 = cursor color index
-	;$67 = delay index
-	;$80 = color memory pointer 
-	;$82 = screen memory pointer
-	;$84 = text color pointer
-	;$86 = text pointer
-
-	screenmem = $0400
-	textscreenmem = screenmem + 10 * 40
-	line1 = screenmem + 9 * 40
-	line2 = screenmem + 24 * 40
-	sid = $1000
-	sidplay = $1000 + 3
-	logobitmap = $2000
-	logocolors = $3000
-	logoscreen = $33eb
-	charset = $3800
-	sprites = $3e00
-	textcolors = $8000
-	linecolors = $8281
-	cursorcolors = $82aa
-	spritecolors = $82be
-	text = $8300
-	random = $d41b
-	colormem = $d800
-	line1colormem = $d968
-	line2colormem = line1colormem + 15 * 40
-	textcolormem = $d990
+	!address{
+		characterindex = $64
+		rowindex = $65
+		cursorcolorindex = $66
+		delayindex = $67
+		randomindex = $68
+		colormempointer = $80
+		screenmempointer = $82
+		textcolorpointer = $84
+		textpointer = $86
+		screenmem = $0400
+		textscreenmem = screenmem + 10 * 40
+		line1 = screenmem + 9 * 40
+		line2 = screenmem + 24 * 40
+		sid = $1000
+		sidplay = $1000 + 3
+		logobitmap = $2000
+		logocolors = $3000
+		logoscreen = $33eb
+		charset = $3800
+		sprites = $3e00
+		textcolors = $8000
+		linecolors = $8281
+		cursorcolors = $82aa
+		spritecolors = $82be
+		text = $8300
+		random = $9000
+		colormem = $d800
+		line1colormem = colormem + 9 * 40
+		line2colormem = line1colormem + 15 * 40
+		textcolormem = $d990
+	}
 
 	*= $0801
 
@@ -37,15 +39,10 @@
 	sta $d020
 	sta $d021
 
-	;initial timer
 	lda #$7f
-	sta $67
+	sta delayindex
 
-	;initial sprite flip
-	lda #$01
-	sta $68
-
-	;jsr initsprites
+	jsr initsprites
 
 pointers:
 	jsr sid
@@ -114,16 +111,20 @@ main:
 	jmp *
 
 initsprites:
+	lda #%00000001
+	sta $d010
+
 	lda	#%11111111
 	sta $d015
+	sta $d01b
 	
 	lda #%00000000
 	sta $d017
-	sta $d01b
 	sta $d01c
 	sta $d01d
 
-	lda #$01
+	lda #$02
+	sta $d027
 	sta $d028
 	sta $d029
 	sta $d02a
@@ -132,14 +133,13 @@ initsprites:
 	sta $d02d
 	sta $d02e
 
-	lda #%00000001
-	sta $d010
-
 	lda #88
 	sta $d000
-
-	lda #125
+	ldx $68
+	lda random,x
 	sta $d001
+	inc $68
+	rts
 
 gfxirq:
 	asl $d019
@@ -192,8 +192,8 @@ txtirq:
 movesprites:
 	dec $d000
 
-	lda $68
-	cmp #$00
+	lda $d010
+	cmp #%00000000
 	beq lower
 	bcs higher
 	rts
@@ -211,20 +211,20 @@ higher:
 	rts
 
 resetspritehigh:
-	lda #$01
-	sta $68
-
 	lda #%00000001
 	sta $d010
 
 	lda #88
 	sta $d000
+
+	ldx $68
+	lda random,x
+	sta $d001
+
+	inc $68
 	rts
 
 resetspritelow:
-	lda #$00
-	sta $68
-
 	lda #%00000000
 	sta $d010
 
@@ -248,13 +248,13 @@ colorcycle:
 	rts
 
 textwriter:
-	lda $66
+	lda cursorcolorindex
 	cmp #19
 	beq resetcursorcolor
 
-	inc $66
+	inc cursorcolorindex
 
-	lda $67
+	lda delayindex
 	cmp #$00
 	beq dotext
 	bcs pause
@@ -263,104 +263,11 @@ textwriter:
 pause:
 	jsr writecursor
 
-	dec $67
-	
-	lda $67
+	dec delayindex
+
+	lda delayindex
 	cmp #$00
 	beq clearscreen
-	rts
-
-dotext:
-	jsr writecharacter
-	jsr writecursor
-	rts
-
-resetcursorcolor:
-	lda #$00
-	sta $66
-	rts
-
-writecursor:
-	ldx $66
-	ldy $64
-	lda cursorcolors,x
-	sta ($80),y
-
-	lda #$7f
-	sta ($82),y
-	rts
-
-writecharacter:
-	ldy $64
-	lda ($84),y
-	sta ($80),y
-
-	lda ($86),y
-	cmp #$ff
-	beq setpointers
-
-	sta ($82),y
-
-	cpy #39
-	beq nextrow
-
-	inc $64
-	rts
-
-pushoffsets:
-	clc
-
-	lda $80
-	adc #40
-	sta $80
-	lda $81
-	adc #$00
-	sta $81
-
-	lda $84
-	adc #40
-	sta $84
-	lda $85
-	adc #$00
-	sta $85
-
-	lda $82
-	adc #40
-	sta $82
-	lda $83
-	adc #$00
-	sta $83
-	rts
-
-pushoffsets2:
-	clc
-
-	lda $86
-	adc #40
-	sta $86
-	lda $87
-	adc #$00
-	sta $87
-	rts
-
-nextrow:
-	jsr pushoffsets2
-
-	lda $65
-	cmp #12
-	beq nextscreen
-
-	jsr pushoffsets
-
-	lda #$00
-	sta $64
-
-	inc $65
-	rts
-
-nextscreen:
-	lda #$ff
-	sta $67
 	rts
 
 clearscreen:
@@ -388,40 +295,141 @@ clearscreen:
 	jsr setscreenpointer
 	rts
 
+dotext:
+	jsr writecharacter
+	jsr writecursor
+	rts
+
+resetcursorcolor:
+	lda #$00
+	sta cursorcolorindex
+	rts
+
+writecursor:
+	ldx cursorcolorindex
+	ldy characterindex
+	lda cursorcolors,x
+	sta (colormempointer),y
+
+	lda #$7f
+	sta (screenmempointer),y
+	rts
+
+writecharacter:
+	ldy characterindex
+	lda (textcolorpointer),y
+	sta (colormempointer),y
+
+	lda (textpointer),y
+	cmp #$ff
+	beq setpointers
+
+	sta (screenmempointer),y
+
+	cpy #39
+	beq nextrow
+
+	inc characterindex
+	rts
+
+pushoffsets:
+	clc
+
+	lda colormempointer
+	adc #40
+	sta colormempointer
+	lda colormempointer + 1
+	adc #$00
+	sta colormempointer + 1
+
+	lda textcolorpointer
+	adc #40
+	sta textcolorpointer
+	lda textcolorpointer + 1
+	adc #$00
+	sta textcolorpointer + 1
+
+	lda screenmempointer
+	adc #40
+	sta screenmempointer
+	lda screenmempointer + 1
+	adc #$00
+	sta screenmempointer + 1
+	rts
+
+pushoffsets2:
+	clc
+
+	lda textpointer
+	adc #40
+	sta textpointer
+	lda textpointer + 1
+	adc #$00
+	sta textpointer + 1
+	rts
+
+nextrow:
+	jsr pushoffsets2
+
+	lda rowindex
+	cmp #12
+	beq nextscreen
+
+	jsr pushoffsets
+
+	lda #$00
+	sta characterindex
+
+	inc rowindex
+	rts
+
+nextscreen:
+	lda #$ff
+	sta delayindex
+	rts
+
+;reset pointers and indices
 setpointers:
 	jsr clearindices
 	jsr setcolorpointer
-	jsr settextcolorpointer
 	jsr setscreenpointer
+	jsr settextcolorpointer
 	jsr settextpointer
+	rts
+
+clearindices:
+	lda #$00
+	sta characterindex
+	sta rowindex
+	sta cursorcolorindex
 	rts
 
 setcolorpointer:
 	lda #<textcolormem
-	sta $80
+	sta colormempointer
 	lda #>textcolormem
-	sta $81
+	sta colormempointer + 1
 	rts
 
 setscreenpointer:
 	lda #<textscreenmem
-	sta $82
+	sta screenmempointer
 	lda #>textscreenmem
-	sta $83
+	sta screenmempointer + 1
 	rts
 
 settextcolorpointer:
 	lda #<textcolors
-	sta $84
+	sta textcolorpointer
 	lda #>textcolors
-	sta $85
+	sta textcolorpointer + 1
 	rts
 
 settextpointer:
 	lda #<text
-	sta $86
+	sta textpointer
 	lda #>text
-	sta $87
+	sta textpointer + 1
 	rts
 
 setspritepointers:
@@ -441,13 +449,6 @@ setspritepointers:
 	sta $07fe
 	lda #$ff
 	sta $07ff
-	rts
-
-clearindices:
-	lda #$00
-	sta $64
-	sta $65
-	sta $66
 	rts
 
 	*= sid
@@ -596,14 +597,27 @@ clearindices:
 	!byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
 
 	*= sprites
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
+	!byte %11111111,%11111111,%11111111
 
 	*= textcolors
 	!byte $0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b
@@ -687,3 +701,6 @@ clearindices:
 	!scr "                                        "
 
 	!byte $ff
+
+	*= random
+	!source "data/rnd.asm"
