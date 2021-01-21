@@ -1,5 +1,4 @@
 @echo off
-setlocal EnableDelayedExpansion
 SET binaries=bin
 SET buildPath=build
 SET dataPath=data
