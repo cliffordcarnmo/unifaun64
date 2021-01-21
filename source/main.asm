@@ -27,7 +27,7 @@
 		random = $9000
 		colormem = $d800
 		line1colormem = colormem + 9 * 40
-		line2colormem = line1colormem + 15 * 40
+		line2colormem = colormem + 24 * 40
 		textcolormem = $d990
 	}
 
@@ -88,14 +88,14 @@ horizontallines:
 main:
 	sei
 
-	lda #$35
+	lda #%00110101
 	sta $01
 
-	lda #$7f
+	lda #%01111111
 	sta $dc0d
 	sta $dd0d
 
-	lda #$01
+	lda #%00000001
 	sta $d01a
 
 	lda #$00
@@ -135,10 +135,10 @@ initsprites:
 
 	lda #88
 	sta $d000
-	ldx $68
+	ldx randomindex
 	lda random,x
 	sta $d001
-	inc $68
+	inc randomindex
 	rts
 
 gfxirq:
@@ -147,10 +147,10 @@ gfxirq:
 	jsr sidplay
 	;jsr movesprites
 
-	lda #$3b
+	lda #%00111011
 	sta $d011
 
-	lda #$18
+	lda #%00011000
 	sta $d016
 
 	lda #%00011110
@@ -217,11 +217,11 @@ resetspritehigh:
 	lda #88
 	sta $d000
 
-	ldx $68
+	ldx randomindex
 	lda random,x
 	sta $d001
 
-	inc $68
+	inc randomindex
 	rts
 
 resetspritelow:
@@ -455,15 +455,12 @@ setspritepointers:
 	!binary "data/goldie.sid",,$7e
 
 	*= logobitmap
-	;!binary "data/unifaun.map",2540
 	!binary "data/unifaun.kla",2540,2
 
 	*= logoscreen
-	;!binary "data/unifaun.scr",318
 	!binary "data/unifaun.kla",318,8002
 
 	*= logocolors
-	;!binary "data/unifaun.col",297
 	!binary "data/unifaun.kla",297,9002
 
 	*= charset
