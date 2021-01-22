@@ -13,15 +13,17 @@ SET cruncher=pucrunch.exe
 SET cruncherArgs=-x$0801 -c64 -g55 -fshort
 SET rng=8brand.exe
 SET rngArgs=125 220 256
+SET rnd=rnd.asm
 SET emulatorPath=%binaries%\vice\bin
 SET emulator=x64sc.exe
 SET emulatorArgs=%buildPath%\%disk%
 SET disktool=c1541.exe
 SET disktoolArgs=-format %name%,42 d64 %buildPath%\%disk% -attach %buildPath%\%disk% -write %buildPath%\%build% %name%
 
-%binaries%\%rng% %rngArgs% > %dataPath%\rnd.asm
+%binaries%\%rng% %rngArgs% > %dataPath%\%rnd%
 %binaries%\%compiler% %compilerArgs% %buildPath%\%build% %sourcePath%\%source%
 %binaries%\%cruncher% %cruncherArgs% %buildPath%\%build% %buildPath%\%build%
 %emulatorPath%\%disktool% %disktoolArgs%
 del %buildPath%\%build%
+del %dataPath%\%rnd%
 %emulatorPath%\%emulator% %emulatorArgs%
