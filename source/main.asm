@@ -217,9 +217,6 @@ starfield:
 	inx
 	cpx #$10
 	bne -
-	
-	inc randomindex
-
 	rts
 
 colorcycle:
