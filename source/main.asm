@@ -136,7 +136,7 @@ initsprites:
 	lda #$0f
 	sta $d02a
 
-	lda #$06
+	lda #$01
 	sta $d02b
 
 	lda #$0f
