@@ -6,7 +6,6 @@
 		rowindex = $65
 		cursorcolorindex = $66
 		delayindex = $67
-		randomindex = $68
 		colormempointer = $80
 		screenmempointer = $82
 		textcolorpointer = $84
@@ -28,7 +27,6 @@
 		spriteposx = $4310
 		spriteposy = $4320
 		spritespeed = $4330
-		random = $4340
 		text = $4440
 		spritesposmem = $d000
 		colormem = $d800
@@ -718,24 +716,6 @@ setspritepointers:
 	!byte $00
 	!byte $00
 
-	*= random
-	!byte $d8,$ca,$96,$a7,$9e,$d4,$da,$ad,$c5,$ad,$b6,$95,$96,$94,$ae,$7d
-	!byte $85,$80,$89,$c6,$db,$90,$a1,$d4,$a9,$cf,$dc,$90,$88,$a1,$e0,$a0
-	!byte $78,$bd,$b8,$b4,$9a,$aa,$e0,$c4,$aa,$a6,$b6,$98,$be,$88,$7c,$91
-	!byte $94,$bb,$bf,$c0,$af,$a3,$96,$ce,$ad,$8f,$91,$87,$c0,$ac,$b2,$8a
-	!byte $bb,$d9,$a4,$c7,$9e,$7e,$cc,$98,$ad,$a2,$7e,$7f,$cd,$d1,$c7,$b5
-	!byte $9e,$92,$d8,$d8,$c2,$c8,$c3,$d2,$93,$b1,$a5,$8c,$94,$78,$78,$8e
-	!byte $c6,$a4,$9b,$d2,$86,$b8,$b4,$8e,$8f,$df,$a3,$da,$7d,$a3,$92,$a6
-	!byte $d5,$ad,$80,$b2,$83,$97,$d6,$7f,$b0,$b2,$a9,$97,$9d,$89,$d0,$df
-	!byte $a8,$ae,$98,$b0,$ac,$8a,$cd,$d8,$be,$85,$ca,$d6,$9f,$98,$ae,$e1
-	!byte $e1,$a2,$a0,$ae,$ac,$d3,$aa,$d6,$c1,$bd,$b1,$b3,$bf,$8d,$98,$d7
-	!byte $c8,$db,$bd,$b6,$96,$ad,$8d,$92,$a5,$b7,$d4,$bc,$78,$ba,$ca,$cd
-	!byte $9e,$96,$ca,$87,$cd,$80,$b4,$b6,$b4,$a2,$db,$ac,$d3,$93,$bb,$bb
-	!byte $dc,$cd,$da,$85,$82,$a1,$e0,$a7,$c2,$81,$9a,$a2,$80,$b6,$b5,$c9
-	!byte $cd,$88,$da,$cd,$e0,$c0,$7c,$7c,$c3,$ce,$d0,$88,$c0,$96,$c2,$dc
-	!byte $7c,$c6,$dd,$a2,$82,$8e,$a7,$bf,$86,$d0,$c5,$a3,$88,$d5,$bc,$ba
-	!byte $95,$94,$a1,$79,$c3,$a7,$c4,$d1,$c5,$b5,$d4,$aa,$7e,$8e,$80,$bf
-
 	*= text
 	!scr "  SunifaunS is a market leader within   "
 	!scr " transport management(tm) on the nordic "
@@ -744,12 +724,12 @@ setspritepointers:
 	!scr "  systems of high quality that simplify "
 	!scr " and improve processes for the transport"
 	!scr "    buyer as well as for the carrier.   "
-	!scr "      more than 800 000 shipments       "
-	!scr "           registered by over           "
-	!scr "     100 000 companies flow through     "
-	!scr "    our tm systems on a daily basis     "
-	!scr "   which makes us a central part of     "
-	!scr "         the nordic logistics.          "
+	!scr "                                        "
+	!scr "      in 2020 we handled more than      "
+	!scr " 281 000 000 shipments and 358 000 000  "
+	!scr "  packages delivered to 240 countries.  "
+	!scr "                                        "
+	!scr "we are a vital part of nordic logistics."
 
 	!scr "  we have built the swedish tm-market   "
 	!scr "   and has actively driven it to the    "
@@ -767,17 +747,17 @@ setspritepointers:
 
 	!scr "   we are always looking for talented   "
 	!scr "    software engineers, architects,     "
-	!scr "       integration specialists,         "
-	!scr "       operations engineers and         "
-	!scr "           data specialists.            "
-	!scr "         we enjoy working with          "
-	!scr "          open source software          "
-	!scr "    and embrace engineering culture.    "
-	!scr "       we are located in both           "
-	!scr "      gothenburg and stockholm.         "
+	!scr "  integration specialists, operations   "
+	!scr "    engineers and data specialists.     "
+	!scr "we enjoy working with free & open source"
+	!scr "software and embrace engineering culture"
+	!scr "                                        "
+	!scr "         we are located in both         "
+	!scr "       gothenburg and stockholm.        "
 	!scr "   come visit us for a cup of coffee    "
-	!scr "           or contact us at             "
-	!scr "            hr@unifaun.com              "
+	!scr "       or get in touch with us at       "
+	!scr "            work@unifaun.com            "
+	!scr "                                        "
 
 	!scr "                                        "
 	!scr "              unifaun64                 "
