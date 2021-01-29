@@ -113,7 +113,7 @@ main:
 	jmp *
 
 initsprites:
-	lda	#%11111111
+	lda #%11111111
 	sta $d015
 	sta $d01b
 
