@@ -756,8 +756,8 @@ setspritepointers:
 	!scr "       gothenburg and stockholm.        "
 	!scr "   come visit us for a cup of coffee    "
 	!scr "       or get in touch with us at       "
-	!scr "            work@unifaun.com            "
 	!scr "                                        "
+	!scr "            work@unifaun.com            "
 
 	!scr "                                        "
 	!scr "              unifaun64                 "
